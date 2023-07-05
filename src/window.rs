@@ -1,6 +1,7 @@
 //! The [`Window`] struct and associated types.
 use std::fmt;
 
+use crate::event::TextInputState;
 use crate::{
     dpi::{PhysicalPosition, PhysicalSize, Position, Size},
     error::{ExternalError, NotSupportedError, OsError},
@@ -1237,6 +1238,24 @@ impl Window {
     pub fn set_ime_purpose(&self, purpose: ImePurpose) {
         self.window
             .maybe_queue_on_main(move |w| w.set_ime_purpose(purpose))
+    }
+
+    /// Opens the IME input (soft keyboard) if the platform supports it.
+    /// Currently only supported on iOS.
+    #[inline]
+    pub fn begin_ime_input(&self) {
+        self.window.maybe_queue_on_main(|w| w.begin_ime_input())
+    }
+
+    /// Hides the IME input (soft keyboard).
+    #[inline]
+    pub fn end_ime_input(&self) {
+        self.window.maybe_queue_on_main(|w| w.end_ime_input())
+    }
+
+    pub fn set_text_input_state(&self, state: TextInputState) {
+        self.window
+            .maybe_queue_on_main(|w| w.set_text_input_state(state))
     }
 
     /// Brings the window to the front and sets input focus. Has no effect if the window is

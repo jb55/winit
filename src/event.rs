@@ -391,6 +391,8 @@ pub enum WindowEvent {
     /// - **iOS / Android / Web / Orbital:** Unsupported.
     Ime(Ime),
 
+    TextInputState(TextInputState),
+
     /// The cursor has moved on the window.
     ///
     /// ## Platform-specific
@@ -418,7 +420,9 @@ pub enum WindowEvent {
     /// [`border`]: https://developer.mozilla.org/en-US/docs/Web/CSS/border
     /// [`padding`]: https://developer.mozilla.org/en-US/docs/Web/CSS/padding
     /// [`transform`]: https://developer.mozilla.org/en-US/docs/Web/CSS/transform
-    CursorEntered { device_id: DeviceId },
+    CursorEntered {
+        device_id: DeviceId,
+    },
 
     /// The cursor has left the window.
     ///
@@ -429,7 +433,9 @@ pub enum WindowEvent {
     /// [`border`]: https://developer.mozilla.org/en-US/docs/Web/CSS/border
     /// [`padding`]: https://developer.mozilla.org/en-US/docs/Web/CSS/padding
     /// [`transform`]: https://developer.mozilla.org/en-US/docs/Web/CSS/transform
-    CursorLeft { device_id: DeviceId },
+    CursorLeft {
+        device_id: DeviceId,
+    },
 
     /// A mouse wheel movement or touchpad scroll occurred.
     MouseWheel {
@@ -476,7 +482,9 @@ pub enum WindowEvent {
     /// ## Platform-specific
     ///
     /// - Only available on **macOS 10.8** and later.
-    SmartMagnify { device_id: DeviceId },
+    SmartMagnify {
+        device_id: DeviceId,
+    },
 
     /// Touchpad rotation event with two-finger rotation gesture.
     ///
@@ -1339,4 +1347,28 @@ mod tests {
         }
         .clone();
     }
+}
+
+/// This struct holds a span within a region of text from `start` (inclusive) to
+/// `end` (exclusive).
+///
+/// An empty span or cursor position is specified with `start == end`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct TextSpan {
+    /// The start of the span (inclusive)
+    pub start: usize,
+
+    /// The end of the span (exclusive)
+    pub end: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct TextInputState {
+    pub text: String,
+    /// A selection defined on the text.
+    pub selection: TextSpan,
+    /// A composing region defined on the text.
+    pub compose_region: Option<TextSpan>,
 }

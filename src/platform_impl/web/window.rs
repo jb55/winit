@@ -15,6 +15,7 @@ use super::{backend, monitor::MonitorHandle, EventLoopWindowTarget, Fullscreen};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;
+use crate::event::TextInputState;
 
 pub struct Window {
     inner: Dispatcher<Inner>,
@@ -326,6 +327,19 @@ impl Inner {
     pub fn set_ime_purpose(&self, _purpose: ImePurpose) {
         // Currently not implemented
     }
+
+    #[inline]
+    pub fn begin_ime_input(&self) {
+        // Currently not implemented
+    }
+
+    #[inline]
+    pub fn end_ime_input(&self) {
+        // Currently not implemented
+    }
+
+    #[inline]
+    pub fn set_text_input_state(&self, state: TextInputState) {}
 
     #[inline]
     pub fn focus_window(&self) {

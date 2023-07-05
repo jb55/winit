@@ -1,23 +1,26 @@
 #![allow(clippy::unnecessary_cast)]
+
 use std::cell::Cell;
 use std::ptr::NonNull;
 
-use icrate::Foundation::{CGFloat, CGRect, MainThreadMarker, NSObject, NSObjectProtocol, NSSet};
+use icrate::Foundation::{
+    CGFloat, CGRect, MainThreadMarker, NSObject, NSObjectProtocol, NSSet, NSString,
+};
 use objc2::declare::{Ivar, IvarDrop};
 use objc2::rc::Id;
 use objc2::runtime::AnyClass;
-use objc2::{declare_class, extern_methods, msg_send, msg_send_id, mutability, ClassType};
-
-use super::app_state::{self, EventWrapper};
-use super::uikit::{
-    UIApplication, UIDevice, UIEvent, UIForceTouchCapability, UIInterfaceOrientationMask,
-    UIResponder, UIStatusBarStyle, UITouch, UITouchPhase, UITouchType, UITraitCollection, UIView,
-    UIViewController, UIWindow,
+use objc2::{
+    declare_class, extern_methods, extern_protocol, msg_send, msg_send_id, mutability, ClassType,
+    ProtocolType,
 };
-use super::window::WindowId;
+use smol_str::SmolStr;
+
+use crate::event::KeyEvent;
+use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKeyCode, PhysicalKey};
+use crate::platform_impl::KeyEventExtra;
 use crate::{
     dpi::PhysicalPosition,
-    event::{DeviceId as RootDeviceId, Event, Force, Touch, TouchPhase, WindowEvent},
+    event::{DeviceId as RootDeviceId, ElementState, Event, Force, Touch, TouchPhase, WindowEvent},
     platform::ios::ValidOrientations,
     platform_impl::platform::{
         ffi::{UIRectEdge, UIUserInterfaceIdiom},
@@ -26,6 +29,29 @@ use crate::{
     },
     window::{WindowAttributes, WindowId as RootWindowId},
 };
+
+use super::app_state::{self, EventWrapper};
+use super::uikit::{
+    UIApplication, UIDevice, UIEvent, UIForceTouchCapability, UIInterfaceOrientationMask,
+    UIResponder, UIStatusBarStyle, UITouch, UITouchPhase, UITouchType, UITraitCollection, UIView,
+    UIViewController, UIWindow,
+};
+use super::window::WindowId;
+
+extern_protocol!(
+    unsafe trait UIKeyInput {
+        #[method(hasText)]
+        fn has_text(&self) -> bool;
+
+        #[method(insertText:)]
+        fn insert_text(&self, _text: &NSString);
+
+        #[method(deleteBackward)]
+        fn delete_backward(&self);
+    }
+
+    unsafe impl ProtocolType for dyn UIKeyInput {}
+);
 
 declare_class!(
     pub(crate) struct WinitView;
@@ -157,6 +183,28 @@ declare_class!(
         fn touches_cancelled(&self, touches: &NSSet<UITouch>, _event: Option<&UIEvent>) {
             self.handle_touches(touches)
         }
+
+        #[method(canBecomeFirstResponder)]
+        fn can_become_first_responder(&self) -> bool {
+            true
+        }
+    }
+
+    unsafe impl UIKeyInput for WinitView {
+        #[method(hasText)]
+        fn has_text(&self) -> bool {
+            true
+        }
+
+        #[method(insertText:)]
+        fn insert_text(&self, _text: &NSString) {
+            self.handle_insert_text(_text)
+        }
+
+        #[method(deleteBackward)]
+        fn delete_backward(&self) {
+            self.handle_delete_backward()
+        }
     }
 );
 
@@ -193,6 +241,71 @@ impl WinitView {
         }
 
         this
+    }
+
+    fn handle_insert_text(&self, text: &NSString) {
+        let window = self.window().unwrap();
+        let uiscreen = window.screen();
+        let window_id = RootWindowId(window.id());
+        unsafe {
+            let mtm = MainThreadMarker::new().unwrap();
+            // send individual events for each character
+            app_state::handle_nonuser_events(
+                mtm,
+                text.to_string().chars().map(|c| {
+                    EventWrapper::StaticEvent(Event::WindowEvent {
+                        window_id,
+                        event: WindowEvent::KeyboardInput {
+                            event: KeyEvent {
+                                text: Some(SmolStr::from_iter([c])),
+                                state: ElementState::Pressed,
+                                location: KeyLocation::Standard,
+                                repeat: false,
+                                logical_key: Key::Character(SmolStr::from_iter([c])),
+                                physical_key: PhysicalKey::Unidentified(
+                                    NativeKeyCode::Unidentified,
+                                ),
+                                platform_specific: KeyEventExtra {},
+                            },
+                            is_synthetic: false,
+                            device_id: RootDeviceId(DeviceId {
+                                uiscreen: Id::as_ptr(&uiscreen),
+                            }),
+                        },
+                    })
+                }),
+            );
+        }
+    }
+
+    fn handle_delete_backward(&self) {
+        let window = self.window().unwrap();
+        let window_id = RootWindowId(window.id());
+        let uiscreen = window.screen();
+        unsafe {
+            let mtm = MainThreadMarker::new().unwrap();
+            app_state::handle_nonuser_events(
+                mtm,
+                std::iter::once(EventWrapper::StaticEvent(Event::WindowEvent {
+                    window_id,
+                    event: WindowEvent::KeyboardInput {
+                        device_id: RootDeviceId(DeviceId {
+                            uiscreen: Id::as_ptr(&uiscreen),
+                        }),
+                        event: KeyEvent {
+                            state: ElementState::Pressed,
+                            logical_key: Key::Named(NamedKey::Backspace),
+                            physical_key: PhysicalKey::Code(KeyCode::Backspace),
+                            platform_specific: KeyEventExtra {},
+                            repeat: false,
+                            location: KeyLocation::Standard,
+                            text: None,
+                        },
+                        is_synthetic: true,
+                    },
+                })),
+            );
+        }
     }
 
     fn handle_touches(&self, touches: &NSSet<UITouch>) {
