@@ -406,8 +406,14 @@ impl ApplicationHandler<UserEvent> for Application {
                 Ime::Preedit(text, caret_pos) => {
                     info!("Preedit: {}, with caret at {:?}", text, caret_pos);
                 },
-                Ime::Commit(text) => {
-                    info!("Committed: {}", text);
+                Ime::Commit { content, .. } => {
+                    info!("Committed: {}", content);
+                },
+                Ime::DeleteSurroundingText { before_length, after_length } => {
+                    info!(
+                        "Deleted surrounding text {before_length} bytes before and {after_length} \
+                         bytes after"
+                    );
                 },
                 Ime::Disabled => info!("IME disabled for Window={window_id:?}"),
             },

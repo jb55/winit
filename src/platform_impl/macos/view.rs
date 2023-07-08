@@ -397,7 +397,11 @@ declare_class!(
             // Commit only if we have marked text.
             if unsafe { self.hasMarkedText() } && self.is_ime_enabled() && !is_control {
                 self.queue_event(WindowEvent::Ime(Ime::Preedit(String::new(), None)));
-                self.queue_event(WindowEvent::Ime(Ime::Commit(string)));
+                self.queue_event(WindowEvent::Ime(Ime::Commit {
+                    content: string,
+                    selection: None,
+                    compose_region: None,
+                }));
                 self.ivars().ime_state.set(ImeState::Committed);
             }
         }

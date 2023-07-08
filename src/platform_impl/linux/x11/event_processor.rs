@@ -980,8 +980,14 @@ impl EventProcessor {
                 };
                 callback(&self.target, event);
 
-                let event =
-                    Event::WindowEvent { window_id, event: WindowEvent::Ime(Ime::Commit(written)) };
+                let event = Event::WindowEvent {
+                    window_id,
+                    event: WindowEvent::Ime(Ime::Commit {
+                        content: written,
+                        selection: None,
+                        compose_region: None,
+                    }),
+                };
 
                 self.is_composing = false;
                 callback(&self.target, event);

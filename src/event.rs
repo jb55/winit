@@ -793,7 +793,19 @@ pub enum Ime {
     /// Notifies when text should be inserted into the editor widget.
     ///
     /// Right before this event winit will send empty [`Self::Preedit`] event.
-    Commit(String),
+    Commit {
+        content: String,
+        /// If selection is Some, the selection / cursor position should be updated after
+        /// placing the `content`.
+        selection: Option<(usize, usize)>,
+        /// If compose_region is Some, the compose region should be updated after replacing the
+        /// text.
+        compose_region: Option<(usize, usize)>,
+    },
+
+    /// Notifies when the text around the cursor should be deleted.
+    /// If `before_length` and `after_length` are [usize::MAX], the entire text should be deleted.
+    DeleteSurroundingText { before_length: usize, after_length: usize },
 
     /// Notifies when the IME was disabled.
     ///

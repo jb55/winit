@@ -1495,6 +1495,9 @@ impl WindowDelegate {
     pub fn set_ime_purpose(&self, _purpose: ImePurpose) {}
 
     #[inline]
+    pub fn set_ime_surrounding_text(&self, _text: String, _selection: (usize, usize)) {}
+
+    #[inline]
     pub fn focus_window(&self) {
         let mtm = MainThreadMarker::from(self);
         let is_minimized = self.window().isMiniaturized();

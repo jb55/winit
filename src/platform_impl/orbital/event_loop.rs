@@ -409,7 +409,11 @@ impl<T: 'static> EventLoop<T> {
                 app.window_event(
                     window_target,
                     RootWindowId(window_id),
-                    event::WindowEvent::Ime(Ime::Commit(character.into())),
+                    event::WindowEvent::Ime(Ime::Commit {
+                        content: character.into(),
+                        selection: None,
+                        compose_region: None,
+                    }),
                 );
             },
             EventOption::Mouse(MouseEvent { x, y }) => {
