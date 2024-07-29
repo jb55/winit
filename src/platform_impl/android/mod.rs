@@ -10,6 +10,7 @@ use android_activity::input::{InputEvent, KeyAction, Keycode, MotionAction};
 use android_activity::{
     AndroidApp, AndroidAppWaker, ConfigurationRef, InputStatus, MainEvent, Rect,
 };
+use smol_str::SmolStr;
 use tracing::{debug, trace, warn};
 
 use crate::cursor::Cursor;
@@ -446,6 +447,13 @@ impl<T: 'static> EventLoop<T> {
                             &mut self.combining_accent,
                         );
 
+                        let logical_key = keycodes::to_logical(key_char, keycode);
+                        let text = if state == event::ElementState::Pressed {
+                            logical_key.to_text().map(SmolStr::new)
+                        } else {
+                            None
+                        };
+
                         let event = event::Event::WindowEvent {
                             window_id: window::WindowId(WindowId),
                             event: event::WindowEvent::KeyboardInput {
@@ -453,10 +461,10 @@ impl<T: 'static> EventLoop<T> {
                                 event: event::KeyEvent {
                                     state,
                                     physical_key: keycodes::to_physical_key(keycode),
-                                    logical_key: keycodes::to_logical(key_char, keycode),
+                                    logical_key,
                                     location: keycodes::to_location(keycode),
                                     repeat: key.repeat_count() > 0,
-                                    text: None,
+                                    text,
                                     platform_specific: KeyEventExtra {},
                                 },
                                 is_synthetic: false,

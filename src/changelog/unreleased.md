@@ -39,3 +39,7 @@ The migration guide could reference other migration examples in the current
 changelog entry.
 
 ## Unreleased
+
+### Changed
+
+- On Android, when `keycode` can be represented as character, its textual representation is provided in `KeyEvent::text`.
